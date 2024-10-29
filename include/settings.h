@@ -3,8 +3,8 @@
 #define APP_TITLE "ESP32CAM-RTSP"
 #define APP_VERSION "1.0"
 
-#define WIFI_SSID "ESP32CAM-RTSP"
-#define WIFI_PASSWORD nullptr
+#define WIFI_SSID "wifiCristian"
+#define WIFI_PASSWORD "1234abcd"
 #define CONFIG_VERSION "1.6"
 
 #define OTA_PASSWORD "ESP32CAM-RTSP"
@@ -37,5 +37,6 @@
 #define DEFAULT_VERTICAL_MIRROR false
 #define DEFAULT_DCW true
 #define DEFAULT_COLORBAR false
+
 
 #define DEFAULT_LED_INTENSITY 0

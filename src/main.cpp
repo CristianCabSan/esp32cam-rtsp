@@ -313,6 +313,21 @@ void on_config_saved()
 
 void setup()
 {
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  /* delay(1000);
+    
+  Serial.print("Connecting to WiFi: ");
+  Serial.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    
+  while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      Serial.print(".");
+  } 
+  Serial.println("Connected!"); */
+
+
   // Disable brownout
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 
@@ -320,9 +335,6 @@ void setup()
   pinMode(USER_LED_GPIO, OUTPUT);
   digitalWrite(USER_LED_GPIO, !USER_LED_ON_LEVEL);
 #endif
-
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
 
 #ifdef ARDUINO_USB_CDC_ON_BOOT
   // Delay for USB to connect/settle
