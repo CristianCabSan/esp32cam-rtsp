@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <esp_wifi.h>
+//#include <esp_wifi.h>
 #include <soc/rtc_cntl_reg.h>
 #include <driver/i2c.h>
 #include <IotWebConf.h>
@@ -15,6 +15,7 @@
 #include <format_number.h>
 #include <moustache.h>
 #include <settings.h>
+#include <PubSubClient.h>
 
 // HTML files
 extern const char index_html_min_start[] asm("_binary_html_index_min_html_start");
@@ -54,6 +55,17 @@ DNSServer dnsServer;
 std::unique_ptr<rtsp_server> camera_server;
 // Web server
 WebServer web_server(80);
+
+//MQTT vars
+const char *MQTT_BROKER_ADRESS = "192.168.43.238";
+const uint16_t MQTT_BROKER_PORT = 1883;
+const char *MQTT_CLIENT_NAME = "Placa_1";
+const char *MQTT_TOPIC = "detection/alert";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+#define LED_PIN 33
 
 auto thingName = String(WIFI_SSID) + "-" + String(ESP.getEfuseMac(), 16);
 IotWebConf iotWebConf(thingName.c_str(), &dnsServer, &web_server, WIFI_PASSWORD, CONFIG_VERSION);
@@ -180,8 +192,61 @@ void handle_snapshot()
 
 #define STREAM_CONTENT_BOUNDARY "123456789000000000000987654321"
 
+void OnMqttReceived(char* topic, byte* message, unsigned int length) {
+  String messageTemp;
+  for (int i = 0; i < length; i++) {
+    messageTemp += (char)message[i];
+  }
+  messageTemp.trim();
+
+  Serial.print("Message received: ");
+  Serial.println(messageTemp);
+  if (messageTemp == "1") {
+    // Trigger action based on detection
+    Serial.println("Alert: Detection occurred");
+    digitalWrite(LED_PIN, HIGH);
+    
+  } else {
+    Serial.println("No detection");
+    digitalWrite(LED_PIN, LOW);
+  }
+}
+
+void ConnectMqtt() {
+  Serial.print("Starting MQTT connection...");
+  if (client.connect(MQTT_CLIENT_NAME))
+  {
+    //Ejmplo de suscripcion
+    Serial.print("Connected");
+    client.subscribe("detection/alert");
+  }
+  else
+  {
+    Serial.print("Failed MQTT connection, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in 5 seconds");
+    delay(5000);
+  }
+}
+
+void HandleMqtt()
+{
+  if (!client.connected())
+  {
+    ConnectMqtt();
+  }
+  client.loop();
+}
+
+void InitMqtt()
+{
+  client.setServer(MQTT_BROKER_ADRESS, MQTT_BROKER_PORT);
+  client.setCallback(OnMqttReceived);
+}
+
 void handle_stream()
 {
+  Serial.print("HandleStream");
   log_v("handle_stream");
   if (camera_init_result != ESP_OK)
   {
@@ -196,6 +261,7 @@ void handle_stream()
   client.write("HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: multipart/x-mixed-replace; boundary=" STREAM_CONTENT_BOUNDARY "\r\n");
   while (client.connected())
   {
+    HandleMqtt();
     client.write("\r\n--" STREAM_CONTENT_BOUNDARY "\r\n");
     cam.run();
     client.write("Content-Type: image/jpeg\r\nContent-Length: ");
@@ -315,18 +381,19 @@ void setup()
 {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  /* delay(1000);
-    
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(WIFI_SSID);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    
-  while (WiFi.status() != WL_CONNECTED) {
-      delay(1000);
-      Serial.print(".");
-  } 
-  Serial.println("Connected!"); */
+  pinMode(LED_PIN, OUTPUT);
 
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected!");
+
+  InitMqtt();
 
   // Disable brownout
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -412,12 +479,13 @@ void setup()
 
   web_server.onNotFound([]()
                         { iotWebConf.handleNotFound(); });
+  
 }
 
-void loop()
-{
+void loop() {
   iotWebConf.doLoop();
 
-  if (camera_server)
+  if (camera_server) {
     camera_server->doLoop();
+  }
 }

@@ -1,6 +1,9 @@
 #include "rtsp_server.h"
 #include <esp32-hal-log.h>
 #include <OV2640Streamer.h>
+#include <PubSubClient.h>
+
+extern PubSubClient client;
 
 // URI: e.g. rtsp://192.168.178.27:554/mjpeg/1
 rtsp_server::rtsp_server(OV2640 &cam, unsigned long interval, int port /*= 554*/)
@@ -18,6 +21,7 @@ size_t rtsp_server::num_connected()
 void rtsp_server::doLoop()
 {
 	timer_.tick();
+	Serial.print("Camera");
 }
 
 rtsp_server::rtsp_client::rtsp_client(const WiFiClient &client, OV2640 &cam)
