@@ -21,7 +21,6 @@ size_t rtsp_server::num_connected()
 void rtsp_server::doLoop()
 {
 	timer_.tick();
-	Serial.print("Camera");
 }
 
 rtsp_server::rtsp_client::rtsp_client(const WiFiClient &client, OV2640 &cam)

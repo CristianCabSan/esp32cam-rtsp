@@ -201,7 +201,7 @@ void OnMqttReceived(char* topic, byte* message, unsigned int length) {
 
   Serial.print("Message received: ");
   Serial.println(messageTemp);
-  if (messageTemp == "1") {
+  if (messageTemp == "True") {
     // Trigger action based on detection
     Serial.println("Alert: Detection occurred");
     digitalWrite(LED_PIN, HIGH);
@@ -246,7 +246,6 @@ void InitMqtt()
 
 void handle_stream()
 {
-  Serial.print("HandleStream");
   log_v("handle_stream");
   if (camera_init_result != ESP_OK)
   {
